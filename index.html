@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
-    <title>Amami Menu - Responsive Orientation</title>
+    <title>Amami Menu - Ultimate Responsive</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
@@ -15,7 +15,7 @@
         --speed: 0.6s;
       }
 
-      /* MODE PORTRAIT (HP Tegak) */
+      /* Portrait */
       @media screen and (max-width: 600px) and (orientation: portrait) {
         :root {
           --width: 46vw;
@@ -23,26 +23,16 @@
         }
       }
 
-      /* MODE LANDSCAPE (HP Miring) - Kunci Perbaikan */
-      @media screen and (max-width: 950px) and (orientation: landscape) {
+      /* Landscape - Dibuat lebih kecil agar tidak menabrak batas layar */
+      @media screen and (orientation: landscape) {
         :root {
-          /* Di landscape, kita patok tinggi buku maksimal 75% dari tinggi layar */
-          --height: 75vh;
-          /* Lebar menyesuaikan secara proporsional agar tidak gepeng (rasio standar ~1:1.4) */
+          --height: 70vh;
           --width: calc(var(--height) * 0.7);
         }
-        .book-container {
-          margin-top: 0; /* Pastikan tidak ada margin atas yang bikin kepotong */
-        }
         .hint {
-          background: rgba(
-            0,
-            0,
-            0,
-            0.5
-          ); /* Beri background tipis agar teks terbaca jika nimpa gambar */
-          padding: 2px 0;
-          bottom: 0px !important;
+          background: rgba(0, 0, 0, 0.6);
+          bottom: 0 !important;
+          padding: 5px 0;
         }
       }
 
@@ -56,14 +46,17 @@
         align-items: center;
         overflow: hidden;
         touch-action: none;
+        position: fixed; /* Mencegah layar goyang di Android */
+        width: 100%;
       }
 
       #zoom-viewport {
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
+        position: relative;
       }
 
       .book-container {
@@ -73,10 +66,7 @@
         transition: transform var(--speed) ease-in-out;
         will-change: transform;
         transform-style: preserve-3d;
-      }
-
-      .book-container.open {
-        transform: translateX(50%);
+        z-index: 5;
       }
 
       .grabbing {
@@ -103,6 +93,7 @@
         backface-visibility: hidden;
         background-size: 100% 100%;
         background-color: #1a1a1a;
+        pointer-events: auto;
       }
 
       .back {
@@ -112,27 +103,15 @@
         transform: rotateY(-180deg);
       }
 
-      .page::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 8px;
-        height: 100%;
-        z-index: 10;
-        background: linear-gradient(to right, rgba(0, 0, 0, 0.2), transparent);
-        pointer-events: none;
-      }
-
       .hint {
         position: fixed;
-        bottom: 10px;
+        bottom: 15px;
         color: #fff;
-        font-size: 10px;
+        font-size: 11px;
         width: 100%;
         text-align: center;
         pointer-events: none;
         z-index: 100;
-        font-family: sans-serif;
       }
     </style>
   </head>
@@ -182,7 +161,7 @@
       </div>
     </div>
 
-    <div class="hint">Tap untuk balik • Cubit untuk zoom</div>
+    <div class="hint">Ketuk Halaman • Cubit untuk Zoom • Geser saat Zoom</div>
 
     <script>
       const container = document.getElementById("bookContainer");
@@ -202,48 +181,46 @@
         lastPosY = 0;
       let lastBaseTransform = "translateX(0%)";
 
-      // Re-check orientation & reset zoom on rotate
-      window.addEventListener("orientationchange", () => {
-        currentScale = 1;
-        posX = 0;
-        posY = 0;
-        updateView();
-      });
+      // Fungsi Utama Update Posisi
+      function updateView() {
+        // Gunakan transform 3D untuk performa terbaik di Android
+        container.style.transform = `${lastBaseTransform} scale(${currentScale}) translate3d(${posX / currentScale}px, ${posY / currentScale}px, 0)`;
+      }
 
+      // Navigasi Balik Halaman
       pages.forEach((page, index) => {
-        page.addEventListener("click", () => {
-          if (currentScale > 1.1) return;
+        page.addEventListener("click", (e) => {
+          if (currentScale > 1.2) return; // Kunci flip jika sedang di-zoom
 
           if (!page.classList.contains("flipped")) {
             page.classList.add("flipped");
             page.style.zIndex = 10 + index;
-            if (index === 0) container.style.transform = "translateX(50%)";
+            if (index === 0) lastBaseTransform = "translateX(50%)";
           } else {
             page.classList.remove("flipped");
             setTimeout(() => {
               page.style.zIndex = 4 - index;
             }, 550);
-            if (index === 0) container.style.transform = "translateX(0%)";
+            if (index === 0) lastBaseTransform = "translateX(0%)";
           }
-          lastBaseTransform = container.style.transform.split(" ")[0];
+          updateView();
         });
       });
 
+      // Kontrol Gesture (Hammer.js)
       const mc = new Hammer.Manager(viewport);
       mc.add(new Hammer.Pinch());
       mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
 
-      function updateView() {
-        container.style.transform = `${lastBaseTransform} scale(${currentScale}) translate3d(${posX}px, ${posY}px, 0)`;
-      }
-
       mc.on("panstart pinchstart", () => {
         container.classList.add("grabbing");
       });
+
       mc.on("pinchmove", (e) => {
         currentScale = Math.max(1, Math.min(lastScale * e.scale, 4));
         updateView();
       });
+
       mc.on("panmove", (e) => {
         if (currentScale > 1) {
           posX = lastPosX + e.deltaX;
@@ -251,11 +228,14 @@
           updateView();
         }
       });
+
       mc.on("panend pinchend", () => {
         container.classList.remove("grabbing");
         lastScale = currentScale;
         lastPosX = posX;
         lastPosY = posY;
+
+        // Reset jika zoom out
         if (currentScale <= 1.05) {
           currentScale = 1;
           lastScale = 1;
@@ -265,6 +245,17 @@
           lastPosY = 0;
           updateView();
         }
+      });
+
+      // Reset otomatis jika HP diputar agar tidak "nyangkut"
+      window.addEventListener("resize", () => {
+        currentScale = 1;
+        lastScale = 1;
+        posX = 0;
+        posY = 0;
+        lastPosX = 0;
+        lastPosY = 0;
+        updateView();
       });
     </script>
   </body>
