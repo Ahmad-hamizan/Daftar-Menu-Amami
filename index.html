@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=yes"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
-    <title>Amami Menu - Zoomable Flipbook</title>
+    <title>Amami Menu - Ultra Smooth Zoom</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
         --width: 350px;
         --height: 500px;
-        --speed: 0.8s;
+        --speed: 0.6s; /* Dipercepat sedikit agar lebih snappier */
       }
 
       @media screen and (max-width: 600px) {
@@ -27,34 +27,34 @@
         margin: 0;
         padding: 0;
         height: 100vh;
-        overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
-        touch-action: none; /* Mencegah browser scroll default agar zoom lancar */
+        overflow: hidden;
+        touch-action: none;
       }
 
-      /* Area pembungkus zoom */
       #zoom-viewport {
         width: 100%;
         height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
-        overflow: hidden;
       }
 
       .book-container {
         position: relative;
         width: var(--width);
         height: var(--height);
+        /* Transition hanya untuk buka/tutup buku */
         transition: transform var(--speed) ease-in-out;
-        transform-origin: center center;
         will-change: transform;
+        transform-style: preserve-3d;
       }
 
-      .book-container.open {
-        transform: translateX(45%);
+      /* Class khusus untuk mematikan animasi saat digeser (penting agar ringan) */
+      .grabbing {
+        transition: none !important;
       }
 
       .page {
@@ -76,8 +76,6 @@
         height: 100%;
         backface-visibility: hidden;
         background-size: 100% 100%;
-        background-position: center;
-        background-repeat: no-repeat;
         background-color: #fff;
         border: 0.5px solid #222;
       }
@@ -91,14 +89,12 @@
 
       .hint {
         position: fixed;
-        bottom: 15px;
-        color: #888;
+        bottom: 10px;
+        color: #666;
         font-size: 10px;
-        letter-spacing: 1px;
-        text-align: center;
         width: 100%;
+        text-align: center;
         pointer-events: none;
-        z-index: 100;
       }
     </style>
   </head>
@@ -148,9 +144,7 @@
       </div>
     </div>
 
-    <div class="hint">
-      Tap untuk balik • Cubit (Pinch) untuk Zoom • Geser untuk navigasi
-    </div>
+    <div class="hint">Cubit untuk Zoom • Geser untuk Lihat Detail</div>
 
     <script>
       const container = document.getElementById("bookContainer");
@@ -162,72 +156,83 @@
         document.getElementById("p4"),
       ];
 
-      // 1. LOGIKA FLIP (KLIK)
+      // --- LOGIKA BALIK HALAMAN ---
       pages.forEach((page, index) => {
-        page.addEventListener("click", (e) => {
-          // Jika sedang zoom, abaikan klik balik halaman agar tidak ganggu saat geser
-          if (currentScale > 1.2) return;
+        page.addEventListener("click", () => {
+          if (currentScale > 1.1) return; // Kunci flip jika sedang zoom
 
           if (!page.classList.contains("flipped")) {
             page.classList.add("flipped");
             page.style.zIndex = 10 + index;
-            if (index === 0) container.classList.add("open");
+            if (index === 0) container.style.transform = "translateX(45%)";
           } else {
             page.classList.remove("flipped");
             setTimeout(() => {
               page.style.zIndex = 4 - index;
-            }, 750);
-            if (index === 0) container.classList.remove("open");
+            }, 550);
+            if (index === 0) container.style.transform = "translateX(0%)";
           }
+          // Simpan posisi dasar
+          lastBaseTransform = container.style.transform.split(" ")[0];
         });
       });
 
-      // 2. LOGIKA ZOOM & PAN (HAMMER JS)
+      // --- LOGIKA ZOOM & GESER (OPTIMIZED) ---
       let currentScale = 1;
-      let rangeMax = 4; // Maksimal zoom 4x
-      let rangeMin = 1;
-      let posX = 0;
-      let posY = 0;
-      let lastPosX = 0;
-      let lastPosY = 0;
+      let lastScale = 1;
+      let posX = 0,
+        posY = 0;
+      let lastPosX = 0,
+        lastPosY = 0;
+      let lastBaseTransform = "translateX(0%)";
 
       const mc = new Hammer.Manager(viewport);
       mc.add(new Hammer.Pinch());
-      mc.add(new Hammer.Pan({ threshold: 0 }));
+      mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
 
-      // Gesture Pinch (Zoom)
-      mc.on("pinchstart pinchmove", (e) => {
-        if (e.type === "pinchstart") {
-          lastScale = currentScale;
-        }
-        currentScale = Math.max(
-          rangeMin,
-          Math.min(lastScale * e.scale, rangeMax),
-        );
-        updateTransform();
+      function updateView() {
+        // Gunakan translate3d untuk akselerasi GPU (lebih enteng)
+        const scaleStr = `scale(${currentScale})`;
+        const translateStr = `translate3d(${posX}px, ${posY}px, 0)`;
+        container.style.transform = `${lastBaseTransform} ${scaleStr} ${translateStr}`;
+      }
+
+      // Saat mulai menyentuh/menggeser
+      mc.on("panstart pinchstart", () => {
+        container.classList.add("grabbing"); // Matikan animasi CSS
       });
 
-      // Gesture Pan (Geser saat sedang zoom)
+      mc.on("pinchmove", (e) => {
+        currentScale = Math.max(1, Math.min(lastScale * e.scale, 4));
+        updateView();
+      });
+
       mc.on("panmove", (e) => {
         if (currentScale > 1) {
           posX = lastPosX + e.deltaX;
           posY = lastPosY + e.deltaY;
-          updateTransform();
+          updateView();
         }
       });
 
-      mc.on("panend", () => {
+      // Saat jari diangkat
+      mc.on("panend pinchend", () => {
+        container.classList.remove("grabbing"); // Hidupkan kembali animasi CSS
+        lastScale = currentScale;
         lastPosX = posX;
         lastPosY = posY;
-      });
 
-      function updateTransform() {
-        // Menggabungkan translasi buku (open/close) dengan zoom manual
-        const openOffset = container.classList.contains("open")
-          ? "translateX(45%)"
-          : "translateX(0%)";
-        container.style.transform = `${openOffset} scale(${currentScale}) translate3d(${posX / currentScale}px, ${posY / currentScale}px, 0)`;
-      }
+        // Reset jika di-zoom out sampai habis
+        if (currentScale <= 1.05) {
+          currentScale = 1;
+          lastScale = 1;
+          posX = 0;
+          posY = 0;
+          lastPosX = 0;
+          lastPosY = 0;
+          updateView();
+        }
+      });
     </script>
   </body>
 </html>
