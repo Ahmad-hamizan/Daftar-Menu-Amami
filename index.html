@@ -2,34 +2,42 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amami Menu - Mobile Responsive</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Amami Menu - Large View</title>
     <style>
       :root {
         /* Ukuran Desktop */
-        --width: 350px;
-        --height: 500px;
+        --width: 380px;
+        --height: 550px;
         --speed: 0.8s;
       }
 
-      /* Penyesuaian untuk Layar Kecil (Android/iPhone) */
-      @media screen and (max-width: 768px) {
+      /* Optimasi Android/Layar Kecil agar Tampilan Besar */
+      @media screen and (max-width: 600px) {
         :root {
-          --width: 160px; /* Mengecilkan lebar agar saat terbuka tidak kepotong */
-          --height: 250px;
+          /* Menggunakan unit vw agar lebar buku selalu mengikuti lebar layar */
+          --width: 45vw;
+          --height: 65vw;
+        }
+        .book-container {
+          margin-top: -5vh; /* Sedikit naik ke atas */
         }
       }
 
       body {
-        background-color: #121212;
+        background-color: #000;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
+        padding: 0;
         perspective: 2000px;
-        overflow: hidden; /* Mencegah scroll yang tidak diinginkan */
-        touch-action: manipulation; /* Optimasi sentuhan di Android */
+        overflow: hidden;
+        touch-action: manipulation;
       }
 
       .book-container {
@@ -38,11 +46,12 @@
         height: var(--height);
         transition: transform var(--speed) ease-in-out;
         transform: translateX(0%);
+        /* Menghilangkan padding yang tidak perlu agar buku lebih besar */
       }
 
-      /* Saat terbuka, geser ke kanan agar halaman kiri yang terbuka tetap di layar */
+      /* Geser buku secara presisi saat terbuka agar tidak keluar layar */
       .book-container.open {
-        transform: translateX(45%);
+        transform: translateX(48%);
       }
 
       .page {
@@ -63,33 +72,28 @@
         width: 100%;
         height: 100%;
         backface-visibility: hidden;
-        background-size: 100% 100%; /* Memastikan gambar pas dengan kotak */
+        background-size: 100% 100%;
         background-position: center;
         background-repeat: no-repeat;
         background-color: #fff;
-        border: 1px solid #333;
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+        /* Border tipis agar gambar terlihat penuh sampai pinggir */
+        border: 0.5px solid #222;
       }
 
       .back {
         transform: rotateY(180deg);
-        background-image: linear-gradient(
-          to left,
-          rgba(0, 0, 0, 0.1) 0%,
-          transparent 15%
-        );
       }
 
       .flipped {
         transform: rotateY(-180deg);
       }
 
-      /* Bayangan tulang buku */
+      /* Efek bayangan lipatan yang lebih tipis agar tidak menutupi teks */
       .page::before {
         content: "";
         position: absolute;
         left: 0;
-        width: 15px;
+        width: 10px;
         height: 100%;
         z-index: 10;
         background: linear-gradient(to right, rgba(0, 0, 0, 0.1), transparent);
@@ -98,11 +102,14 @@
 
       .hint {
         position: fixed;
-        bottom: 20px;
-        color: #888;
-        font-size: 12px;
-        text-align: center;
+        bottom: 15px;
+        color: #ccc;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
         width: 100%;
+        text-align: center;
+        pointer-events: none;
       }
     </style>
   </head>
@@ -153,7 +160,7 @@
       </div>
     </div>
 
-    <div class="hint">Tap halaman untuk membalik</div>
+    <div class="hint">Ketuk untuk membalik halaman</div>
 
     <script>
       const container = document.getElementById("bookContainer");
@@ -169,17 +176,14 @@
           e.stopPropagation();
 
           if (!page.classList.contains("flipped")) {
-            // BUKA
             page.classList.add("flipped");
             page.style.zIndex = 10 + index;
             if (index === 0) container.classList.add("open");
           } else {
-            // TUTUP
             page.classList.remove("flipped");
-            // Timeout untuk kelancaran z-index
             setTimeout(() => {
               page.style.zIndex = 4 - index;
-            }, 700);
+            }, 750);
             if (index === 0) container.classList.remove("open");
           }
         });
