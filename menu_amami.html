@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Amami Kafe & Resto - Flipbook</title>
+    <style>
+        :root {
+            --bg-color: #f4f1ea;
+            --paper-color: #fffdfa;
+            --text-color: #332d2d;
+            --accent-color: #8b5e3c;
+        }
+
+        body {
+            background-color: #d1ccc0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Georgia', serif;
+            color: var(--text-color);
+        }
+
+        /* Container Flipbook */
+        .book {
+            position: relative;
+            width: 350px;
+            height: 500px;
+            transition: transform 0.5s;
+            perspective: 1500px;
+        }
+
+        /* Halaman */
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+            box-shadow: 1px 1px 5px rgba(0,0,0,0.1);
+        }
+
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            backface-visibility: hidden;
+            background-color: var(--paper-color);
+            border: 1px solid #e0dcd3;
+            overflow-y: auto;
+        }
+
+        .back {
+            transform: rotateY(180deg);
+        }
+
+        /* Efek Terbuka */
+        .flipped {
+            transform: rotateY(-180deg);
+        }
+
+        /* Konten Visual */
+        h1, h2 { text-align: center; color: var(--accent-color); margin-bottom: 10px; }
+        .menu-item { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dotted #ccc; }
+        .price { font-weight: bold; }
+        .section-title { background: var(--accent-color); color: white; padding: 5px; text-align: center; margin-top: 15px; }
+        
+        /* Cover Style */
+        .cover { background-color: #4a3728 !important; color: white !important; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 0 5px 5px 0; }
+        .cover h1 { color: #f1c40f; margin: 0; font-size: 2.5em; }
+        .cover p { font-style: italic; }
+
+        .instruction { position: fixed; bottom: 20px; font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="book" id="book">
+    <div class="page" onclick="flipPage(this)">
+        <div class="front cover">
+            <h1>AMAMI</h1>
+            <p>Kafe & Resto</p>
+            <small>Est. 2026</small>
+            <p style="margin-top: 50px;">- DAFTAR MENU -</p>
+        </div>
+        <div class="back">
+            <h2>Chocolate Series</h2>
+            <div class="menu-item"><span>Swiss Chocolate</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Hazelnut Chocolate</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Milo Chocolate</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Oreo Chocolate</span><span class="price">20K</span></div>
+            
+            <div class="section-title">Coffee Signature</div>
+            <div class="menu-item"><span>Kuy Original Coffee Milk</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Kuy Palm Sugar Coffee Milk</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Butterscotch Coffee</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Americano</span><span class="price">20K</span></div>
+        </div>
+    </div>
+
+    <div class="page" onclick="flipPage(this)">
+        <div class="front">
+            <h2>Milky & Creamy</h2>
+            <div class="menu-item"><span>Fresh Milk Brown Sugar</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Oreo Milk Brown Sugar</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Taro Brown Sugar</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Vanilla</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Red Velvet</span><span class="price">20K</span></div>
+
+            <div class="section-title">Tea Series</div>
+            <div class="menu-item"><span>Peach Tea</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Lemon Tea</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Strawberry Tea</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Thai Tea</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Matcha Latte</span><span class="price">20K</span></div>
+        </div>
+        <div class="back">
+            <h2>Makanan Utama</h2>
+            <div class="section-title">Nasi Goreng</div>
+            <div class="menu-item"><span>Nasi Goreng Kampung</span><span class="price">25K</span></div>
+            <div class="menu-item"><span>Nasi Goreng Seafood</span><span class="price">29K</span></div>
+            <div class="menu-item"><span>Nasi Goreng Spesial</span><span class="price">25K</span></div>
+            <div class="menu-item"><span>Nasi Goreng Katsu</span><span class="price">26K</span></div>
+
+            <div class="section-title">Burger</div>
+            <div class="menu-item"><span>Burger Beef</span><span class="price">25K</span></div>
+            <div class="menu-item"><span>Burger Chicken</span><span class="price">22K</span></div>
+
+            <div class="section-title">Sop Iga</div>
+            <div class="menu-item"><span>Sop Iga Kuah Bening</span><span class="price">35K</span></div>
+        </div>
+    </div>
+
+    <div class="page" onclick="flipPage(this)">
+        <div class="front">
+            <h2>Mie & Kwetiaw</h2>
+            <div class="menu-item"><span>Mie Level 1</span><span class="price">10K</span></div>
+            <div class="menu-item"><span>Mie Level 2</span><span class="price">11K</span></div>
+            <div class="menu-item"><span>Mie Level 3</span><span class="price">12K</span></div>
+            <hr>
+            <div class="menu-item"><span>Kwetiaw Level 1</span><span class="price">10K</span></div>
+            <div class="menu-item"><span>Kwetiaw Level 2</span><span class="price">11K</span></div>
+            <div class="menu-item"><span>Kwetiaw Level 3</span><span class="price">12K</span></div>
+
+            <div class="section-title">Roti Bakar</div>
+            <div class="menu-item"><span>Coklat Crunchy</span><span class="price">12K</span></div>
+            <div class="menu-item"><span>Tiramisu</span><span class="price">13K</span></div>
+            <div class="menu-item"><span>Coklat Keju</span><span class="price">15K</span></div>
+            <div class="menu-item"><span>Keju Susu</span><span class="price">16K</span></div>
+        </div>
+        <div class="back">
+            <h2>Camilan</h2>
+            <div class="section-title">Dimsum</div>
+            <div class="menu-item"><span>Dimsum Original</span><span class="price">15K</span></div>
+            <div class="menu-item"><span>Dimsum Mentai</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Dimsum Chili Oil</span><span class="price">18K</span></div>
+
+            <div class="section-title">Sides</div>
+            <div class="menu-item"><span>Kentang Goreng</span><span class="price">12K</span></div>
+            <div class="menu-item"><span>Fish Roll</span><span class="price">12K</span></div>
+            <div class="menu-item"><span>Chicken Karage</span><span class="price">20K</span></div>
+            <div class="menu-item"><span>Chicken Wings</span><span class="price">18K</span></div>
+            
+            <div style="text-align:center; margin-top:30px; border: 2px solid var(--accent-color); padding: 5px;">
+                Selamat Menikmati
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="instruction">Klik pada halaman untuk membalik</div>
+
+<script>
+    function flipPage(page) {
+        page.classList.toggle('flipped');
+        
+        // Mengatur z-index agar halaman yang dibalik tidak tertutup
+        if (page.classList.contains('flipped')) {
+            setTimeout(() => {
+                page.style.zIndex = "1";
+            }, 500);
+        } else {
+            page.style.zIndex = "";
+        }
+    }
+</script>
+
+</body>
+</html>
