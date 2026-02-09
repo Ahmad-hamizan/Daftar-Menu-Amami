@@ -6,19 +6,23 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
-    <title>Amami Menu - Ultra Smooth Zoom</title>
+    <title>Amami Menu - Full Screen View</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
-        --width: 350px;
-        --height: 500px;
-        --speed: 0.6s; /* Dipercepat sedikit agar lebih snappier */
+        /* Ukuran Desktop */
+        --width: 400px;
+        --height: 580px;
+        --speed: 0.6s;
       }
 
+      /* Optimasi Android: Memaksimalkan lebar gambar */
       @media screen and (max-width: 600px) {
         :root {
-          --width: 45vw;
-          --height: 65vw;
+          /* Satu halaman memakan 48% lebar layar (Total 2 halaman = 96% layar) */
+          /* Margin samping hanya tersisa 2% kiri & 2% kanan */
+          --width: 48vw;
+          --height: 70vw; /* Sesuaikan tinggi agar proporsional */
         }
       }
 
@@ -46,13 +50,17 @@
         position: relative;
         width: var(--width);
         height: var(--height);
-        /* Transition hanya untuk buka/tutup buku */
         transition: transform var(--speed) ease-in-out;
         will-change: transform;
         transform-style: preserve-3d;
       }
 
-      /* Class khusus untuk mematikan animasi saat digeser (penting agar ringan) */
+      /* Geser pas ke tengah saat terbuka (hampir tidak ada margin) */
+      .book-container.open {
+        transform: translateX(50%);
+      }
+
+      /* Matikan animasi saat interaksi zoom/geser agar enteng */
       .grabbing {
         transition: none !important;
       }
@@ -75,9 +83,9 @@
         width: 100%;
         height: 100%;
         backface-visibility: hidden;
-        background-size: 100% 100%;
-        background-color: #fff;
-        border: 0.5px solid #222;
+        background-size: 100% 100%; /* Gambar dipaksa penuh ke kotak */
+        background-color: #1a1a1a;
+        border: none; /* Hapus border untuk kesan tanpa batas */
       }
 
       .back {
@@ -87,11 +95,23 @@
         transform: rotateY(-180deg);
       }
 
+      /* Efek bayangan lipatan diperhalus agar tidak makan tempat */
+      .page::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 8px;
+        height: 100%;
+        z-index: 10;
+        background: linear-gradient(to right, rgba(0, 0, 0, 0.2), transparent);
+        pointer-events: none;
+      }
+
       .hint {
         position: fixed;
-        bottom: 10px;
-        color: #666;
-        font-size: 10px;
+        bottom: 8px;
+        color: #444;
+        font-size: 9px;
         width: 100%;
         text-align: center;
         pointer-events: none;
@@ -144,7 +164,7 @@
       </div>
     </div>
 
-    <div class="hint">Cubit untuk Zoom • Geser untuk Lihat Detail</div>
+    <div class="hint">Tap untuk balik • Cubit untuk zoom</div>
 
     <script>
       const container = document.getElementById("bookContainer");
@@ -156,28 +176,6 @@
         document.getElementById("p4"),
       ];
 
-      // --- LOGIKA BALIK HALAMAN ---
-      pages.forEach((page, index) => {
-        page.addEventListener("click", () => {
-          if (currentScale > 1.1) return; // Kunci flip jika sedang zoom
-
-          if (!page.classList.contains("flipped")) {
-            page.classList.add("flipped");
-            page.style.zIndex = 10 + index;
-            if (index === 0) container.style.transform = "translateX(45%)";
-          } else {
-            page.classList.remove("flipped");
-            setTimeout(() => {
-              page.style.zIndex = 4 - index;
-            }, 550);
-            if (index === 0) container.style.transform = "translateX(0%)";
-          }
-          // Simpan posisi dasar
-          lastBaseTransform = container.style.transform.split(" ")[0];
-        });
-      });
-
-      // --- LOGIKA ZOOM & GESER (OPTIMIZED) ---
       let currentScale = 1;
       let lastScale = 1;
       let posX = 0,
@@ -186,20 +184,37 @@
         lastPosY = 0;
       let lastBaseTransform = "translateX(0%)";
 
+      // --- LOGIKA BALIK HALAMAN ---
+      pages.forEach((page, index) => {
+        page.addEventListener("click", () => {
+          if (currentScale > 1.1) return;
+
+          if (!page.classList.contains("flipped")) {
+            page.classList.add("flipped");
+            page.style.zIndex = 10 + index;
+            if (index === 0) container.style.transform = "translateX(50%)";
+          } else {
+            page.classList.remove("flipped");
+            setTimeout(() => {
+              page.style.zIndex = 4 - index;
+            }, 550);
+            if (index === 0) container.style.transform = "translateX(0%)";
+          }
+          lastBaseTransform = container.style.transform.split(" ")[0];
+        });
+      });
+
+      // --- LOGIKA ZOOM & GESER ---
       const mc = new Hammer.Manager(viewport);
       mc.add(new Hammer.Pinch());
       mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
 
       function updateView() {
-        // Gunakan translate3d untuk akselerasi GPU (lebih enteng)
-        const scaleStr = `scale(${currentScale})`;
-        const translateStr = `translate3d(${posX}px, ${posY}px, 0)`;
-        container.style.transform = `${lastBaseTransform} ${scaleStr} ${translateStr}`;
+        container.style.transform = `${lastBaseTransform} scale(${currentScale}) translate3d(${posX}px, ${posY}px, 0)`;
       }
 
-      // Saat mulai menyentuh/menggeser
       mc.on("panstart pinchstart", () => {
-        container.classList.add("grabbing"); // Matikan animasi CSS
+        container.classList.add("grabbing");
       });
 
       mc.on("pinchmove", (e) => {
@@ -215,14 +230,12 @@
         }
       });
 
-      // Saat jari diangkat
       mc.on("panend pinchend", () => {
-        container.classList.remove("grabbing"); // Hidupkan kembali animasi CSS
+        container.classList.remove("grabbing");
         lastScale = currentScale;
         lastPosX = posX;
         lastPosY = posY;
 
-        // Reset jika di-zoom out sampai habis
         if (currentScale <= 1.05) {
           currentScale = 1;
           lastScale = 1;
