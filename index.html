@@ -6,23 +6,43 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
-    <title>Amami Menu - Full Screen View</title>
+    <title>Amami Menu - Responsive Orientation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
-        /* Ukuran Desktop */
-        --width: 400px;
-        --height: 580px;
+        --width: 380px;
+        --height: 550px;
         --speed: 0.6s;
       }
 
-      /* Optimasi Android: Memaksimalkan lebar gambar */
-      @media screen and (max-width: 600px) {
+      /* MODE PORTRAIT (HP Tegak) */
+      @media screen and (max-width: 600px) and (orientation: portrait) {
         :root {
-          /* Satu halaman memakan 48% lebar layar (Total 2 halaman = 96% layar) */
-          /* Margin samping hanya tersisa 2% kiri & 2% kanan */
-          --width: 48vw;
-          --height: 70vw; /* Sesuaikan tinggi agar proporsional */
+          --width: 46vw;
+          --height: 70vw;
+        }
+      }
+
+      /* MODE LANDSCAPE (HP Miring) - Kunci Perbaikan */
+      @media screen and (max-width: 950px) and (orientation: landscape) {
+        :root {
+          /* Di landscape, kita patok tinggi buku maksimal 75% dari tinggi layar */
+          --height: 75vh;
+          /* Lebar menyesuaikan secara proporsional agar tidak gepeng (rasio standar ~1:1.4) */
+          --width: calc(var(--height) * 0.7);
+        }
+        .book-container {
+          margin-top: 0; /* Pastikan tidak ada margin atas yang bikin kepotong */
+        }
+        .hint {
+          background: rgba(
+            0,
+            0,
+            0,
+            0.5
+          ); /* Beri background tipis agar teks terbaca jika nimpa gambar */
+          padding: 2px 0;
+          bottom: 0px !important;
         }
       }
 
@@ -55,12 +75,10 @@
         transform-style: preserve-3d;
       }
 
-      /* Geser pas ke tengah saat terbuka (hampir tidak ada margin) */
       .book-container.open {
         transform: translateX(50%);
       }
 
-      /* Matikan animasi saat interaksi zoom/geser agar enteng */
       .grabbing {
         transition: none !important;
       }
@@ -83,9 +101,8 @@
         width: 100%;
         height: 100%;
         backface-visibility: hidden;
-        background-size: 100% 100%; /* Gambar dipaksa penuh ke kotak */
+        background-size: 100% 100%;
         background-color: #1a1a1a;
-        border: none; /* Hapus border untuk kesan tanpa batas */
       }
 
       .back {
@@ -95,7 +112,6 @@
         transform: rotateY(-180deg);
       }
 
-      /* Efek bayangan lipatan diperhalus agar tidak makan tempat */
       .page::before {
         content: "";
         position: absolute;
@@ -109,12 +125,14 @@
 
       .hint {
         position: fixed;
-        bottom: 8px;
-        color: #444;
-        font-size: 9px;
+        bottom: 10px;
+        color: #fff;
+        font-size: 10px;
         width: 100%;
         text-align: center;
         pointer-events: none;
+        z-index: 100;
+        font-family: sans-serif;
       }
     </style>
   </head>
@@ -184,7 +202,14 @@
         lastPosY = 0;
       let lastBaseTransform = "translateX(0%)";
 
-      // --- LOGIKA BALIK HALAMAN ---
+      // Re-check orientation & reset zoom on rotate
+      window.addEventListener("orientationchange", () => {
+        currentScale = 1;
+        posX = 0;
+        posY = 0;
+        updateView();
+      });
+
       pages.forEach((page, index) => {
         page.addEventListener("click", () => {
           if (currentScale > 1.1) return;
@@ -204,7 +229,6 @@
         });
       });
 
-      // --- LOGIKA ZOOM & GESER ---
       const mc = new Hammer.Manager(viewport);
       mc.add(new Hammer.Pinch());
       mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
@@ -216,12 +240,10 @@
       mc.on("panstart pinchstart", () => {
         container.classList.add("grabbing");
       });
-
       mc.on("pinchmove", (e) => {
         currentScale = Math.max(1, Math.min(lastScale * e.scale, 4));
         updateView();
       });
-
       mc.on("panmove", (e) => {
         if (currentScale > 1) {
           posX = lastPosX + e.deltaX;
@@ -229,13 +251,11 @@
           updateView();
         }
       });
-
       mc.on("panend pinchend", () => {
         container.classList.remove("grabbing");
         lastScale = currentScale;
         lastPosX = posX;
         lastPosY = posY;
-
         if (currentScale <= 1.05) {
           currentScale = 1;
           lastScale = 1;
