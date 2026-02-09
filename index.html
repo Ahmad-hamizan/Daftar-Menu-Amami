@@ -4,40 +4,44 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes"
     />
-    <title>Amami Menu - Large View</title>
+    <title>Amami Menu - Zoomable Flipbook</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
-        /* Ukuran Desktop */
-        --width: 380px;
-        --height: 550px;
+        --width: 350px;
+        --height: 500px;
         --speed: 0.8s;
       }
 
-      /* Optimasi Android/Layar Kecil agar Tampilan Besar */
       @media screen and (max-width: 600px) {
         :root {
-          /* Menggunakan unit vw agar lebar buku selalu mengikuti lebar layar */
           --width: 45vw;
           --height: 65vw;
-        }
-        .book-container {
-          margin-top: -5vh; /* Sedikit naik ke atas */
         }
       }
 
       body {
         background-color: #000;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
-        perspective: 2000px;
+        touch-action: none; /* Mencegah browser scroll default agar zoom lancar */
+      }
+
+      /* Area pembungkus zoom */
+      #zoom-viewport {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         overflow: hidden;
-        touch-action: manipulation;
       }
 
       .book-container {
@@ -45,13 +49,12 @@
         width: var(--width);
         height: var(--height);
         transition: transform var(--speed) ease-in-out;
-        transform: translateX(0%);
-        /* Menghilangkan padding yang tidak perlu agar buku lebih besar */
+        transform-origin: center center;
+        will-change: transform;
       }
 
-      /* Geser buku secara presisi saat terbuka agar tidak keluar layar */
       .book-container.open {
-        transform: translateX(48%);
+        transform: translateX(45%);
       }
 
       .page {
@@ -76,94 +79,82 @@
         background-position: center;
         background-repeat: no-repeat;
         background-color: #fff;
-        /* Border tipis agar gambar terlihat penuh sampai pinggir */
         border: 0.5px solid #222;
       }
 
       .back {
         transform: rotateY(180deg);
       }
-
       .flipped {
         transform: rotateY(-180deg);
-      }
-
-      /* Efek bayangan lipatan yang lebih tipis agar tidak menutupi teks */
-      .page::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        width: 10px;
-        height: 100%;
-        z-index: 10;
-        background: linear-gradient(to right, rgba(0, 0, 0, 0.1), transparent);
-        pointer-events: none;
       }
 
       .hint {
         position: fixed;
         bottom: 15px;
-        color: #ccc;
-        font-size: 11px;
-        text-transform: uppercase;
+        color: #888;
+        font-size: 10px;
         letter-spacing: 1px;
-        width: 100%;
         text-align: center;
+        width: 100%;
         pointer-events: none;
+        z-index: 100;
       }
     </style>
   </head>
   <body>
-    <div class="book-container" id="bookContainer">
-      <div class="page" id="p4" style="z-index: 1">
-        <div
-          class="front"
-          style="background-image: url(&quot;img/halaman7.png&quot;)"
-        ></div>
-        <div
-          class="back"
-          style="background-image: url(&quot;img/halaman8.png&quot;)"
-        ></div>
-      </div>
-
-      <div class="page" id="p3" style="z-index: 2">
-        <div
-          class="front"
-          style="background-image: url(&quot;img/halaman5.png&quot;)"
-        ></div>
-        <div
-          class="back"
-          style="background-image: url(&quot;img/halaman6.png&quot;)"
-        ></div>
-      </div>
-
-      <div class="page" id="p2" style="z-index: 3">
-        <div
-          class="front"
-          style="background-image: url(&quot;img/halaman3.png&quot;)"
-        ></div>
-        <div
-          class="back"
-          style="background-image: url(&quot;img/halaman4.png&quot;)"
-        ></div>
-      </div>
-
-      <div class="page" id="p1" style="z-index: 4">
-        <div
-          class="front"
-          style="background-image: url(&quot;img/halaman1.png&quot;)"
-        ></div>
-        <div
-          class="back"
-          style="background-image: url(&quot;img/halaman2.png&quot;)"
-        ></div>
+    <div id="zoom-viewport">
+      <div class="book-container" id="bookContainer">
+        <div class="page" id="p4" style="z-index: 1">
+          <div
+            class="front"
+            style="background-image: url(&quot;img/halaman7.png&quot;)"
+          ></div>
+          <div
+            class="back"
+            style="background-image: url(&quot;img/halaman8.png&quot;)"
+          ></div>
+        </div>
+        <div class="page" id="p3" style="z-index: 2">
+          <div
+            class="front"
+            style="background-image: url(&quot;img/halaman5.png&quot;)"
+          ></div>
+          <div
+            class="back"
+            style="background-image: url(&quot;img/halaman6.png&quot;)"
+          ></div>
+        </div>
+        <div class="page" id="p2" style="z-index: 3">
+          <div
+            class="front"
+            style="background-image: url(&quot;img/halaman3.png&quot;)"
+          ></div>
+          <div
+            class="back"
+            style="background-image: url(&quot;img/halaman4.png&quot;)"
+          ></div>
+        </div>
+        <div class="page" id="p1" style="z-index: 4">
+          <div
+            class="front"
+            style="background-image: url(&quot;img/halaman1.png&quot;)"
+          ></div>
+          <div
+            class="back"
+            style="background-image: url(&quot;img/halaman2.png&quot;)"
+          ></div>
+        </div>
       </div>
     </div>
 
-    <div class="hint">Ketuk untuk membalik halaman</div>
+    <div class="hint">
+      Tap untuk balik • Cubit (Pinch) untuk Zoom • Geser untuk navigasi
+    </div>
 
     <script>
       const container = document.getElementById("bookContainer");
+      const viewport = document.getElementById("zoom-viewport");
       const pages = [
         document.getElementById("p1"),
         document.getElementById("p2"),
@@ -171,9 +162,11 @@
         document.getElementById("p4"),
       ];
 
+      // 1. LOGIKA FLIP (KLIK)
       pages.forEach((page, index) => {
         page.addEventListener("click", (e) => {
-          e.stopPropagation();
+          // Jika sedang zoom, abaikan klik balik halaman agar tidak ganggu saat geser
+          if (currentScale > 1.2) return;
 
           if (!page.classList.contains("flipped")) {
             page.classList.add("flipped");
@@ -188,6 +181,53 @@
           }
         });
       });
+
+      // 2. LOGIKA ZOOM & PAN (HAMMER JS)
+      let currentScale = 1;
+      let rangeMax = 4; // Maksimal zoom 4x
+      let rangeMin = 1;
+      let posX = 0;
+      let posY = 0;
+      let lastPosX = 0;
+      let lastPosY = 0;
+
+      const mc = new Hammer.Manager(viewport);
+      mc.add(new Hammer.Pinch());
+      mc.add(new Hammer.Pan({ threshold: 0 }));
+
+      // Gesture Pinch (Zoom)
+      mc.on("pinchstart pinchmove", (e) => {
+        if (e.type === "pinchstart") {
+          lastScale = currentScale;
+        }
+        currentScale = Math.max(
+          rangeMin,
+          Math.min(lastScale * e.scale, rangeMax),
+        );
+        updateTransform();
+      });
+
+      // Gesture Pan (Geser saat sedang zoom)
+      mc.on("panmove", (e) => {
+        if (currentScale > 1) {
+          posX = lastPosX + e.deltaX;
+          posY = lastPosY + e.deltaY;
+          updateTransform();
+        }
+      });
+
+      mc.on("panend", () => {
+        lastPosX = posX;
+        lastPosY = posY;
+      });
+
+      function updateTransform() {
+        // Menggabungkan translasi buku (open/close) dengan zoom manual
+        const openOffset = container.classList.contains("open")
+          ? "translateX(45%)"
+          : "translateX(0%)";
+        container.style.transform = `${openOffset} scale(${currentScale}) translate3d(${posX / currentScale}px, ${posY / currentScale}px, 0)`;
+      }
     </script>
   </body>
 </html>
