@@ -6,33 +6,43 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
     />
-    <title>Amami Menu - Ultimate Responsive</title>
+    <title>Amami Kafe & Resto - Official Menu</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
       :root {
+        /* Ukuran Desktop Standar */
         --width: 380px;
         --height: 550px;
         --speed: 0.6s;
       }
 
-      /* Portrait */
+      /* RESPONSIVE: Mode Portrait (HP Tegak) */
       @media screen and (max-width: 600px) and (orientation: portrait) {
         :root {
-          --width: 46vw;
-          --height: 70vw;
+          --width: 47vw;
+          --height: 68vw;
+        }
+        .book-container {
+          margin-top: -2vh;
         }
       }
 
-      /* Landscape - Dibuat lebih kecil agar tidak menabrak batas layar */
+      /* RESPONSIVE: Mode Landscape (HP Miring) - Perbaikan Tinggi & Potongan */
       @media screen and (orientation: landscape) {
         :root {
-          --height: 70vh;
-          --width: calc(var(--height) * 0.7);
+          /* Tinggi dipangkas agar bagian bawah (Chicken Wings/Sop Iga) tidak terpotong */
+          --height: 62vh;
+          --width: calc(var(--height) * 0.72);
+        }
+        .book-container {
+          /* Tarik sedikit ke atas untuk memberi ruang teks instruksi di bawah */
+          margin-top: -8vh;
         }
         .hint {
-          background: rgba(0, 0, 0, 0.6);
+          background: rgba(0, 0, 0, 0.75);
           bottom: 0 !important;
-          padding: 5px 0;
+          padding: 6px 0;
+          font-weight: bold;
         }
       }
 
@@ -46,8 +56,9 @@
         align-items: center;
         overflow: hidden;
         touch-action: none;
-        position: fixed; /* Mencegah layar goyang di Android */
+        position: fixed;
         width: 100%;
+        font-family: sans-serif;
       }
 
       #zoom-viewport {
@@ -56,7 +67,6 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        position: relative;
       }
 
       .book-container {
@@ -66,9 +76,9 @@
         transition: transform var(--speed) ease-in-out;
         will-change: transform;
         transform-style: preserve-3d;
-        z-index: 5;
       }
 
+      /* Matikan animasi saat jari menggeser agar tidak berat/gejluk */
       .grabbing {
         transition: none !important;
       }
@@ -92,8 +102,10 @@
         height: 100%;
         backface-visibility: hidden;
         background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
         background-color: #1a1a1a;
-        pointer-events: auto;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
       }
 
       .back {
@@ -103,15 +115,29 @@
         transform: rotateY(-180deg);
       }
 
+      /* Efek Shadow Lipatan Tengah */
+      .page::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 10px;
+        height: 100%;
+        z-index: 10;
+        background: linear-gradient(to right, rgba(0, 0, 0, 0.25), transparent);
+        pointer-events: none;
+      }
+
       .hint {
         position: fixed;
         bottom: 15px;
         color: #fff;
-        font-size: 11px;
+        font-size: 10px;
         width: 100%;
         text-align: center;
         pointer-events: none;
         z-index: 100;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
     </style>
   </head>
@@ -161,7 +187,9 @@
       </div>
     </div>
 
-    <div class="hint">Ketuk Halaman • Cubit untuk Zoom • Geser saat Zoom</div>
+    <div class="hint">
+      Tap Halaman untuk Membalik • Cubit untuk Zoom • Geser untuk Detail
+    </div>
 
     <script>
       const container = document.getElementById("bookContainer");
@@ -181,16 +209,11 @@
         lastPosY = 0;
       let lastBaseTransform = "translateX(0%)";
 
-      // Fungsi Utama Update Posisi
-      function updateView() {
-        // Gunakan transform 3D untuk performa terbaik di Android
-        container.style.transform = `${lastBaseTransform} scale(${currentScale}) translate3d(${posX / currentScale}px, ${posY / currentScale}px, 0)`;
-      }
-
-      // Navigasi Balik Halaman
+      // 1. LOGIKA BALIK HALAMAN
       pages.forEach((page, index) => {
-        page.addEventListener("click", (e) => {
-          if (currentScale > 1.2) return; // Kunci flip jika sedang di-zoom
+        page.addEventListener("click", () => {
+          // Kunci navigasi jika sedang di-zoom agar tidak sengaja terpencet saat menggeser
+          if (currentScale > 1.15) return;
 
           if (!page.classList.contains("flipped")) {
             page.classList.add("flipped");
@@ -198,6 +221,7 @@
             if (index === 0) lastBaseTransform = "translateX(50%)";
           } else {
             page.classList.remove("flipped");
+            // Delay agar tumpukan visual pas saat menutup
             setTimeout(() => {
               page.style.zIndex = 4 - index;
             }, 550);
@@ -207,10 +231,15 @@
         });
       });
 
-      // Kontrol Gesture (Hammer.js)
+      // 2. LOGIKA ZOOM & PAN (SMOOTH)
       const mc = new Hammer.Manager(viewport);
       mc.add(new Hammer.Pinch());
       mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+
+      function updateView() {
+        // Menggunakan translate3d agar render dilakukan oleh GPU (Hardware Acceleration)
+        container.style.transform = `${lastBaseTransform} scale(${currentScale}) translate3d(${posX / currentScale}px, ${posY / currentScale}px, 0)`;
+      }
 
       mc.on("panstart pinchstart", () => {
         container.classList.add("grabbing");
@@ -235,7 +264,7 @@
         lastPosX = posX;
         lastPosY = posY;
 
-        // Reset jika zoom out
+        // Reset otomatis jika zoom out maksimal
         if (currentScale <= 1.05) {
           currentScale = 1;
           lastScale = 1;
@@ -247,7 +276,7 @@
         }
       });
 
-      // Reset otomatis jika HP diputar agar tidak "nyangkut"
+      // Reset posisi saat layar diputar agar tidak berantakan
       window.addEventListener("resize", () => {
         currentScale = 1;
         lastScale = 1;
